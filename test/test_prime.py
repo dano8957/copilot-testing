@@ -43,5 +43,42 @@ class TestPrime(unittest.TestCase):
         self.assertTrue(is_prime(104729))  # 10000th prime number
         self.assertFalse(is_prime(104728))  # Just one less than 10000th prime number
 
+    def test_very_small_numbers(self):
+        self.assertFalse(is_prime(-100))
+        self.assertFalse(is_prime(-1000))
+
+    def test_large_prime_numbers(self):
+        self.assertTrue(is_prime(999983))  # A large prime number
+        self.assertTrue(is_prime(982451653))  # Another large prime number
+
+    def test_large_non_prime_numbers(self):
+        self.assertFalse(is_prime(999984))  # Just one more than a large prime number
+        self.assertFalse(is_prime(982451654))  # Just one more than another large prime number
+
+    def test_even_numbers(self):
+        self.assertFalse(is_prime(4))
+        self.assertFalse(is_prime(100))
+        self.assertFalse(is_prime(1000000))
+
+    def test_known_composite_numbers(self):
+        self.assertFalse(is_prime(15))  # 3 * 5
+        self.assertFalse(is_prime(21))  # 3 * 7
+        self.assertFalse(is_prime(49))  # 7 * 7
+
+    def test_known_prime_numbers(self):
+        self.assertTrue(is_prime(13))
+        self.assertTrue(is_prime(17))
+        self.assertTrue(is_prime(19))
+
+    def test_squares_of_primes(self):
+        self.assertFalse(is_prime(4))  # 2^2
+        self.assertFalse(is_prime(9))  # 3^2
+        self.assertFalse(is_prime(25))  # 5^2
+
+    def test_products_of_two_primes(self):
+        self.assertFalse(is_prime(6))  # 2 * 3
+        self.assertFalse(is_prime(15))  # 3 * 5
+        self.assertFalse(is_prime(35))  # 5 * 7
+
 if __name__ == '__main__':
     unittest.main()

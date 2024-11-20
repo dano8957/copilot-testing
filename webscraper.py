@@ -13,8 +13,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Database setup
 DATABASE = 'scraper.db'
 
-def init_db():
-    conn = sqlite3.connect(DATABASE)
+def init_db(database=DATABASE):
+    conn = sqlite3.connect(database)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS data (
@@ -26,13 +26,32 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Web Scraper
+class Database:
+    def __init__(self, database=DATABASE):
+        self.database = database
+
+    def save_data(self, data):
+        conn = sqlite3.connect(self.database)
+        cursor = conn.cursor()
+        cursor.executemany('INSERT INTO data (title, url) VALUES (?, ?)', data)
+        conn.commit()
+        conn.close()
+
+    def fetch_data(self):
+        conn = sqlite3.connect(self.database)
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM data')
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+
 class WebScraper:
-    def __init__(self, base_url, endpoints):
+    def __init__(self, base_url, endpoints, database):
         self.base_url = base_url
         self.endpoints = endpoints
         self.lock = threading.Lock()
         self.results = []
+        self.database = database
 
     async def fetch_page(self, session, url):
         async with session.get(url) as response:
@@ -54,34 +73,23 @@ class WebScraper:
         loop.run_until_complete(asyncio.gather(*tasks))
 
     def save_to_db(self):
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
         with self.lock:
-            cursor.executemany('INSERT INTO data (title, url) VALUES (?, ?)', self.results)
-        conn.commit()
-        conn.close()
+            self.database.save_data(self.results)
 
 # REST API
 app = Flask(__name__)
+database = Database()
 
 @app.route('/data', methods=['GET'])
 def get_data():
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM data')
-    rows = cursor.fetchall()
-    conn.close()
+    rows = database.fetch_data()
     return jsonify(rows)
 
 @app.route('/data', methods=['POST'])
 def add_data():
     title = request.json['title']
     url = request.json['url']
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('INSERT INTO data (title, url) VALUES (?, ?)', (title, url))
-    conn.commit()
-    conn.close()
+    database.save_data([(title, url)])
     return jsonify({'status': 'success'}), 201
 
 if __name__ == "__main__":
@@ -90,7 +98,7 @@ if __name__ == "__main__":
     # Example usage of the scraper
     base_url = "https://example.com"
     endpoints = ["page1", "page2", "page3"]
-    scraper = WebScraper(base_url, endpoints)
+    scraper = WebScraper(base_url, endpoints, database)
     
     logging.info("Starting web scraping...")
     scraper.run()
